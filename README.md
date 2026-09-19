@@ -25,7 +25,18 @@
 | 16 | Vista de escritorio con cuadrícula (Tailwind `md:block`) | ✅ |
 | 17 | Bottom Sheet de **Búsqueda** fuzzy (Fuse.js, live search, deep-link al producto) | ✅ |
 
-## 🛠️ Stack
+## � Performance & Fixes (2026-09-19)
+
+**Mobile Performance Optimization Round Completed:**
+- ✅ Fixed deep link scroll race condition → smooth navigation
+- ✅ Fixed History API listener stacking → reliable sheet toggling  
+- ✅ Fixed scrollbar width shift → no visual jank
+- ✅ Fixed search navigation delay (370ms) → instant redirects
+- ✅ Migrated to event-driven scroll timing → 100% reliability
+
+**See [PERFORMANCE_FIXES.md](./PERFORMANCE_FIXES.md) for detailed technical documentation of all issues found and fixed via Chrome DevTools remote debugging on actual Android device.**
+
+## �🛠️ Stack
 
 - **Next.js 14** (App Router) + **TypeScript**
 - **Tailwind CSS 3** (mobile-first)

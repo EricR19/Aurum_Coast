@@ -39,15 +39,31 @@
     height: 100vh; /* fallback base */
     height: 100svh; /* fallback mejor: tamano minimo garantizado */
     height: calc(var(--app-height, 100svh));
-    /* FIX 2026-09-18 "la imagen anterior queda pegada al scrollear rapido":
-       sin esto, las 17 secciones comparten una sola superficie de rasterizado
-       con `<main>` (que ya tiene su propio `will-change: transform`). En
-       scroll rapido, Chrome/MIUI a veces no re-rasteriza a tiempo los tiles
-       recien expuestos de esa superficie compartida y deja pixeles viejos
-       visibles (el producto anterior) hasta el proximo repaint. Promover
-       cada seccion a su PROPIA capa de composicion evita que compartan
-       tiles entre si. */
-    will-change: transform;
+
+    /* FIX 2026-09-19 — CAUSA RAIZ de los glitches / "imagen anterior pegada".
+       Aca antes habia un `will-change: transform`. La intencion era darle a
+       cada seccion su propia capa de composicion para que no compartieran
+       tiles. El efecto real fue el contrario:
+
+       `will-change` promueve la capa de forma PERMANENTE, y esta clase se
+       aplica a 15 elementos (Hero + BrandChips + 12 productos + TrustCard)
+       MAS el `<main>` contenedor. En un 1080x2400 cada capa full-screen
+       cuesta ~10 MB de textura => ~150 MB de memoria de GPU retenidos
+       durante toda la sesion, en celulares de gama media que no los tienen.
+
+       Al agotarse el presupuesto, el compositor empieza a expulsar y
+       re-rasterizar tiles bajo demanda: eso es literalmente el frame viejo
+       pegado, el scroll trabado y los artefactos de pintado que se
+       reportaban. Es decir, el "fix" anterior convirtio un fallo ocasional
+       de rasterizado en presion de memoria permanente.
+
+       Ahora ninguna seccion se promueve sola. El unico que se promueve es
+       el contenedor `<main>`, y SOLO mientras hay un scroll activo (ver
+       `isScrolling` en `MobileFeed.tsx`). `contain` le da al navegador la
+       misma info de aislamiento que buscabamos, pero sin reservar memoria
+       de GPU: le garantiza que el layout/paint de una seccion no afecta a
+       las demas. */
+    contain: layout paint;
   }
 
   /* Animación pulse para el CTA "Desliza para explorar" */

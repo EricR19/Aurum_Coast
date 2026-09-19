@@ -13,6 +13,11 @@ import { products, getAllBrands } from '@/lib/products';
 import { applyFilters } from '@/lib/filters';
 import { parseHashProductId, scrollToProductAfterSplash } from '@/lib/deepLink';
 import { useAppHeight } from '@/lib/useAppHeight';
+import {
+  beginProgrammaticScroll,
+  consumeProgrammaticScroll,
+  resetProgrammaticScroll,
+} from '@/lib/programmaticScroll';
 
 // Lazy load de TODOS los Bottom Sheets: solo se descargan cuando el usuario
 // abre el sheet por primera vez. Esto reduce el bundle inicial y, mas
@@ -92,20 +97,32 @@ function FeedInner({ storeName }: { storeName: string }) {
     const targetId = parseHashProductId();
     if (!targetId) return;
     setShowSplash(true);
-    scrollToProductAfterSplash(feedRef.current, targetId, products, 500).finally(
-      () => setShowSplash(false)
-    );
+    scrollToProductAfterSplash(feedRef.current, targetId, products, 500, {
+      // La marca se pone JUSTO antes del `scrollTo` (no aca arriba): si se
+      // marcara ahora, cualquier `scrollend` que ocurriera durante los
+      // frames de espera del slide consumiria la marca antes de tiempo.
+      onScrollStart: () => beginProgrammaticScroll(),
+    }).finally(() => {
+      setShowSplash(false);
+    });
   }, []);
 
-  // FIX 2026-09-18: antes `will-change` se prendia/apagaba dinamicamente
-  // (solo durante scroll activo) para ahorrar memoria de GPU. El problema:
-  // cada vez que arrancaba un scroll, el navegador tenia que promover
-  // `<main>` a su propia capa de composicion DE NUEVO -> un frame de
-  // "glitch" visible al INICIO de cada navegacion (justo lo que
-  // reportaba el usuario, incluso en scroll lento de a un producto).
-  // Dejarlo fijo evita esa promocion/democion repetida. El costo de
-  // memoria de una sola capa persistente es aceptable frente al glitch.
-  const willChange = 'transform' as const;
+  // FIX 2026-09-19 (causa raiz de los glitches / "imagen anterior pegada"):
+  // este `willChange: 'transform'` sobre `<main>` se sumaba al
+  // `will-change: transform` que `.h-screen-snap` aplicaba a las 15
+  // secciones (Hero + BrandChips + 12 productos + TrustCard). Eso son 16
+  // capas de composicion full-screen permanentes: a ~10 MB de textura cada
+  // una en un 1080x2400, ~150 MB de memoria de GPU retenidos toda la
+  // sesion. Cuando el compositor se queda sin presupuesto empieza a
+  // expulsar y re-rasterizar tiles, y eso es EXACTAMENTE lo que se veia:
+  // el frame viejo pegado, el scroll trabado y los glitches de pintado.
+  //
+  // Ahora el feed NO promueve capas de forma permanente: `will-change` se
+  // aplica solo mientras hay un scroll activo (y solo al contenedor), que
+  // es cuando realmente aporta. Ver tambien `globals.css`, donde se saco
+  // el `will-change` de `.h-screen-snap`.
+  const [isScrolling, setIsScrolling] = useState(false);
+  const willChange = isScrolling ? ('transform' as const) : ('auto' as const);
 
   // MOTOR DE PAGINADO (Option B): esta es la UNICA logica que decide donde
   // "snapea" el feed. No hay `scroll-snap-type` en el CSS -- se saco por
@@ -136,10 +153,24 @@ function FeedInner({ storeName }: { storeName: string }) {
     if (!el) return;
     let touching = false;
 
+    // Tolerancia de alineado. Antes era 2px, pero las secciones miden
+    // `--app-height` = `visualViewport.height`, que es FRACCIONARIA (ej.
+    // 731.43px). Los `offsetTop` acumulan ese error subpixel, asi que el
+    // scroll "correcto" podia quedar a 3-4px del `offsetTop` teorico y el
+    // motor seguia intentando corregir -> micro-jitter infinito.
+    const SNAP_TOLERANCE_PX = 6;
+
     const snapToNearest = () => {
       const sections = Array.from(el.children) as HTMLElement[];
       if (sections.length === 0) return;
       const scrollTop = el.scrollTop;
+
+      // Si ya estamos al final del scroll no hay nada que corregir: forzar
+      // el `offsetTop` de la ultima seccion ahi produce un tiron hacia
+      // atras (el clasico "me saca del TrustCard").
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      if (scrollTop >= maxScroll - SNAP_TOLERANCE_PX) return;
+
       let nearest = sections[0];
       let nearestDist = Math.abs(nearest.offsetTop - scrollTop);
       for (const section of sections) {
@@ -149,14 +180,24 @@ function FeedInner({ storeName }: { storeName: string }) {
           nearestDist = dist;
         }
       }
-      // Solo corregir si quedo a mas de 2px del punto de snap: evita
-      // pelear con el scroll nativo cuando ya alineo bien.
-      if (nearestDist > 2) {
-        el.scrollTo({ top: nearest.offsetTop, behavior: 'smooth' });
-      }
+      if (nearestDist <= SNAP_TOLERANCE_PX) return;
+
+      // FIX 2026-09-19: este `scrollTo` tambien termina emitiendo su propio
+      // `scrollend`. Sin marcarlo, ese evento volvia a entrar a
+      // `snapToNearest()` -> bucle de correcciones encadenadas. Lo marcamos
+      // como programatico para que el proximo `scrollend` se ignore.
+      beginProgrammaticScroll();
+      el.scrollTo({ top: Math.round(nearest.offsetTop), behavior: 'smooth' });
     };
 
     const onScrollEnd = () => {
+      setIsScrolling(false);
+      // FIX 2026-09-19: ANTES este flag se resetaba pero NUNCA se leia en
+      // esta rama (solo en el fallback de linea ~182), asi que la proteccion
+      // contra scrolls programaticos era codigo muerto: cada deep link y
+      // cada tap de busqueda recibia una correccion de snap encima, y eso
+      // producia el salto visible al aterrizar. Ahora si se consume.
+      if (consumeProgrammaticScroll()) return;
       if (!touching) snapToNearest();
     };
 
@@ -165,10 +206,15 @@ function FeedInner({ storeName }: { storeName: string }) {
     // dudas). Sin esto, esos navegadores se quedarian sin ningun ajuste.
     const supportsScrollEnd = 'onscrollend' in window;
     let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
-    const onScrollFallback = () => {
+    const onScroll = () => {
+      // Promueve el contenedor a capa de composicion mientras dura el
+      // scroll. Se baja en `scrollend` (o en el fallback de abajo).
+      setIsScrolling(true);
       if (supportsScrollEnd) return;
       if (fallbackTimer) clearTimeout(fallbackTimer);
       fallbackTimer = setTimeout(() => {
+        setIsScrolling(false);
+        if (consumeProgrammaticScroll()) return;
         if (!touching) snapToNearest();
       }, 250);
     };
@@ -183,17 +229,18 @@ function FeedInner({ storeName }: { storeName: string }) {
     };
 
     el.addEventListener('scrollend', onScrollEnd);
-    el.addEventListener('scroll', onScrollFallback, { passive: true });
+    el.addEventListener('scroll', onScroll, { passive: true });
     el.addEventListener('touchstart', onTouchStart, { passive: true });
     el.addEventListener('touchend', onTouchEnd, { passive: true });
     el.addEventListener('touchcancel', onTouchEnd, { passive: true });
     return () => {
       el.removeEventListener('scrollend', onScrollEnd);
-      el.removeEventListener('scroll', onScrollFallback);
+      el.removeEventListener('scroll', onScroll);
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('touchend', onTouchEnd);
       el.removeEventListener('touchcancel', onTouchEnd);
       if (fallbackTimer) clearTimeout(fallbackTimer);
+      resetProgrammaticScroll();
     };
   }, []);
 

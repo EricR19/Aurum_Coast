@@ -244,21 +244,64 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   }, [state.cart]);
 
   // ------ History API: pushState al abrir sheet, popstate al cerrar.
+  // FIX 2026-09-18: track listener attachment to prevent stacking
+  // FIX 2026-09-19: store listener in ref to ensure proper cleanup
+  /**
+   * Cuenta cuantas entradas "fantasma" pusheamos nosotros y todavia no se
+   * consumieron. Es el unico dato que hace segura la decision de
+   * `closeSheet()`: sin el, hacer `history.back()` a ciegas podia sacar al
+   * usuario del sitio.
+   */
+  const ghostEntriesRef = useRef(0);
+
   useEffect(() => {
-    if (state.currentSheet) {
-      // Inserta una entrada "fantasma" para que el botón Atrás cierre el sheet.
-      window.history.pushState({ sheet: state.currentSheet }, '');
-    }
+    // FIX 2026-09-19 (causa raiz de "el boton Atras se sale de la app"):
+    // ANTES el `pushState` estaba en el cuerpo del efecto pero el cleanup que
+    // lo balanceaba estaba DENTRO del `if` del listener. Con
+    // `reactStrictMode: true` (next.config.mjs) React monta -> desmonta ->
+    // remonta cada efecto en dev, asi que se pusheaban DOS entradas fantasma
+    // y solo se removia una. El stack quedaba desbalanceado y el boton Atras
+    // necesitaba dos toques (indistinguible de un sheet congelado).
+    //
+    // Ahora: pushState y su limpieza viven en el MISMO scope condicional, y
+    // llevamos la cuenta explicita de las entradas fantasma pendientes.
+    if (!state.currentSheet) return;
+
+    window.history.pushState({ sheet: state.currentSheet, ghost: true }, '');
+    ghostEntriesRef.current += 1;
 
     const handlePop = () => {
-      // Si se disparó popstate, alguien presionó "Atrás". Cerramos el sheet.
-      if (state.currentSheet) {
+      // popstate = el usuario presiono "Atras" (o consumimos la entrada
+      // nosotros desde closeSheet). La entrada fantasma ya no existe.
+      if (ghostEntriesRef.current > 0) ghostEntriesRef.current -= 1;
+      if (stateRef.current.currentSheet) {
         dispatch({ type: 'CLOSE_SHEET' });
       }
     };
+
     window.addEventListener('popstate', handlePop);
-    return () => window.removeEventListener('popstate', handlePop);
+
+    return () => {
+      window.removeEventListener('popstate', handlePop);
+    };
   }, [state.currentSheet]);
+
+  // Mantiene el contador accesible desde las acciones (referencia estable).
+  const closeSheetRef = useRef<() => void>(() => {});
+  closeSheetRef.current = () => {
+    // FIX 2026-09-19: antes esto hacia `window.history.back()` sin condicion
+    // alguna. Si la entrada fantasma ya habia sido consumida (o reescrita por
+    // el `replaceState` que hacia `scrollToProduct`), ese `back()` navegaba
+    // FUERA del sitio: el "redirect raro" que se reportaba.
+    //
+    // Ahora solo usamos la History API si nosotros pusheamos una entrada que
+    // sigue pendiente. Si no, cerramos por estado, que siempre es seguro.
+    if (ghostEntriesRef.current > 0) {
+      window.history.back();
+      return;
+    }
+    dispatch({ type: 'CLOSE_SHEET' });
+  };
 
   // ------ Estado expuesto: cambia solo cuando cambia el state.
   // Memoizamos por primitivos para evitar invalidaciones innecesarias
@@ -294,14 +337,9 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     () => ({
       requestSheet: (key, product) =>
         dispatch({ type: 'OPEN_SHEET', key, product }),
-      closeSheet: () => {
-        // Si hay history en el sheet, retrocede una entrada para mantener coherencia.
-        if (stateRef.current.currentSheet && window.history.state?.sheet) {
-          window.history.back();
-          return;
-        }
-        dispatch({ type: 'CLOSE_SHEET' });
-      },
+      // Delega en `closeSheetRef` para que la logica pueda leer el contador
+      // de entradas fantasma sin romper la referencia estable de las acciones.
+      closeSheet: () => closeSheetRef.current(),
       setBrand: (brand) => dispatch({ type: 'SET_BRAND', brand }),
       setMovement: (movement) => dispatch({ type: 'SET_MOVEMENT', movement }),
       setStyle: (style) => dispatch({ type: 'SET_STYLE', style }),

@@ -6,6 +6,7 @@ import { Search, X } from 'lucide-react';
 import { BottomSheet, useSheetState } from './BottomSheet';
 import { formatCRCOnly, products as catalog } from '@/lib/products';
 import { scrollToProduct } from '@/lib/deepLink';
+import { beginProgrammaticScroll } from '@/lib/programmaticScroll';
 import { track } from '@/lib/metaPixel';
 import type { Product } from '@/lib/types';
 
@@ -84,23 +85,22 @@ export function SearchSheet() {
     // Lo identificamos por la clase `h-screen-snap` (unica en la pagina).
     const container = document.querySelector<HTMLElement>('main.h-screen-snap');
     if (!container) return;
-    // Usamos scrollToProduct que scrollea programaticamente el contenedor.
-    // Antes se usaba slide.scrollIntoView() que opera sobre el viewport del
-    // navegador y podia terminar saltando al final del scroll (TrustCard).
-    // Ver lib/deepLink.ts.
+
+    // FIX 2026-09-19: el destino ahora se resuelve por `data-product-id`
+    // sobre el DOM real (ver lib/deepLink.ts). Antes se calculaba por indice
+    // contra el array crudo del JSON, que NO coincide con el orden renderizado
+    // (el feed ordena por `popularity`): el tap caia en el producto
+    // equivocado y, con un filtro de marca activo, el indice se salia del
+    // rango y no pasaba NADA. Eso era el verdadero "search frozen", no el
+    // setTimeout de 370ms que se habia removido antes.
     //
-    // FIX performance: antes había un `setTimeout(200)` que se ejecutaba
-    // MIENTRAS el sheet todavía estaba saliendo (la animacion de salida
-    // dura 320ms segun BottomSheet.tsx). Eso hacia que el scroll peleara
-    // contra la animacion de salida y daba la sensacion de "la animacion
-    // no funciona / se traba". Ahora esperamos 370ms (salida + 50ms de
-    // margen) para que el scroll arranque cuando el sheet ya esta fuera
-    // del camino.
-    const EXIT_DURATION_MS = 320; // ver BottomSheet.tsx transition duration
-    const SAFETY_MS = 50;
-    setTimeout(() => {
-      scrollToProduct(container, product.id, catalog, 0);
-    }, EXIT_DURATION_MS + SAFETY_MS);
+    // `clearHash` queda en false a proposito: `sheet.onClose()` dispara un
+    // `history.back()` asincrono y un `replaceState` aca reescribiria la
+    // entrada que ese `back()` todavia no resolvio.
+    scrollToProduct(container, product.id, catalog, 0, {
+      clearHash: false,
+      onScrollStart: () => beginProgrammaticScroll(),
+    });
   };
 
   return (
