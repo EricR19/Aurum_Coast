@@ -37,6 +37,10 @@ interface GalleryEmblaProps {
  *   snap, la imagen ya esta descargada y aplica Ken Burns al entrar.
  */
 export function GalleryEmbla({ images, onSlideChange, scrollRootRef, priorityFirst = false }: GalleryEmblaProps) {
+  // DIAGNOSTICO 2026-09-18 (descartado): se probo `watchDrag: false` para
+  // ver si el drag horizontal de Embla interfeia con la navegacion
+  // vertical ("saltos/redirecciones raras"). El usuario confirmo que el
+  // problema persistia igual sin drag de Embla -> NO es la causa. Revertido.
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
     align: 'start',

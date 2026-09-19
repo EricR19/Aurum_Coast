@@ -113,32 +113,27 @@ function FeedInner({ storeName }: { storeName: string }) {
   // sigue siendo el nativo del navegador (momentum/inercia reales); esto
   // solo corrige el punto de aterrizaje final.
   //
-  // FIX 2026-09-18 "swipe rapido por 3 fotos y se devuelve a una anterior":
-  // la version anterior esperaba a que dejaran de llegar eventos `scroll`
-  // por 200ms para asumir que el scroll estaba quieto. Con 3 imagenes
-  // decodificando a la vez (main thread ocupado), el navegador puede dejar
-  // de despachar eventos `scroll` por mas de 200ms A MITAD del momentum
-  // nativo (el scroll compositor-thread sigue moviendose, solo que el
-  // evento no llega al JS a tiempo). Eso hacia que "snapToNearest" se
-  // disparara con un `scrollTop` todavia intermedio, calculara la seccion
-  // mas cercana EN ESE INSTANTE (una anterior a donde el fling realmente
-  // iba) y la forzara con `scrollTo` -> se ve como si "se devolviera".
+  // FIX 2026-09-18 #2 "saltos/redirecciones raras siguen pasando":
+  // la version anterior (rAF + "6 frames sin cambio de scrollTop > 0.5px")
+  // segui teniendo un defecto de FISICA, no de timing: el momentum nativo
+  // decae EXPONENCIALMENTE, nunca llega a cero de golpe. Eso significa que
+  // en CUALQUIER fling (incluso uno fuerte que todavia va a recorrer 2-3
+  // secciones mas) hay un tramo donde el delta entre frames cae por debajo
+  // del umbral por pura desaceleracion normal, sin que el scroll haya
+  // terminado de verdad. Nuestro codigo lo confundia con "quieto", corregia
+  // hacia la seccion mas cercana EN ESE INSTANTE (todavia detras de adonde
+  // iba el fling) con `scrollTo`, y eso peleaba contra el momentum nativo
+  // que seguia corriendo -> resultado impredecible ("salto raro").
   //
-  // Ahora medimos `el.scrollTop` directamente en cada frame (`rAF`), sin
-  // depender de si el evento `scroll` llega o no. Solo se considera
-  // "quieto" cuando el valor NO cambio en 6 frames seguidos (~100ms de
-  // posicion real sin moverse, no solo sin eventos). Esto es inmune a que
-  // el hilo principal este ocupado decodificando imagenes: si el scroll
-  // compositor-thread todavia se esta moviendo, lo vamos a detectar en el
-  // proximo frame que el hilo principal pueda ejecutar.
+  // Ningun umbral arbitrario (ni en tiempo ni en pixeles) puede distinguir
+  // "desacelerando lento" de "ya termino" con certeza, porque son la misma
+  // curva. La unica fuente de verdad real es el navegador: el evento
+  // nativo `scrollend` se dispara EXACTAMENTE una vez, cuando TODO el
+  // scroll (momentum del usuario + cualquier `scrollTo` programatico)
+  // termino de verdad. Sin heuristicas, sin falsos positivos.
   useEffect(() => {
     const el = feedRef.current;
     if (!el) return;
-    const STABLE_FRAMES_NEEDED = 6;
-    let rafId: number;
-    let lastTop = el.scrollTop;
-    let stableFrames = 0;
-    let pendingCorrection = false;
     let touching = false;
 
     const snapToNearest = () => {
@@ -161,43 +156,44 @@ function FeedInner({ storeName }: { storeName: string }) {
       }
     };
 
-    const tick = () => {
-      const top = el.scrollTop;
-      if (Math.abs(top - lastTop) > 0.5) {
-        stableFrames = 0;
-        pendingCorrection = true;
-      } else {
-        stableFrames++;
-      }
-      lastTop = top;
-
-      if (!touching && pendingCorrection && stableFrames >= STABLE_FRAMES_NEEDED) {
-        pendingCorrection = false;
-        snapToNearest();
-      }
-
-      rafId = requestAnimationFrame(tick);
+    const onScrollEnd = () => {
+      if (!touching) snapToNearest();
     };
-    rafId = requestAnimationFrame(tick);
+
+    // Fallback para navegadores sin soporte de `scrollend` (Baseline desde
+    // 2023; deberia existir en cualquier Chrome/MIUI moderno, pero por las
+    // dudas). Sin esto, esos navegadores se quedarian sin ningun ajuste.
+    const supportsScrollEnd = 'onscrollend' in window;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+    const onScrollFallback = () => {
+      if (supportsScrollEnd) return;
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      fallbackTimer = setTimeout(() => {
+        if (!touching) snapToNearest();
+      }, 250);
+    };
 
     // Un toque nuevo cancela cualquier intento de corregir: nunca debe
     // pelear un `scrollTo` programatico contra un gesto activo del usuario.
     const onTouchStart = () => {
       touching = true;
-      pendingCorrection = false;
     };
     const onTouchEnd = () => {
       touching = false;
     };
 
+    el.addEventListener('scrollend', onScrollEnd);
+    el.addEventListener('scroll', onScrollFallback, { passive: true });
     el.addEventListener('touchstart', onTouchStart, { passive: true });
     el.addEventListener('touchend', onTouchEnd, { passive: true });
     el.addEventListener('touchcancel', onTouchEnd, { passive: true });
     return () => {
-      cancelAnimationFrame(rafId);
+      el.removeEventListener('scrollend', onScrollEnd);
+      el.removeEventListener('scroll', onScrollFallback);
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('touchend', onTouchEnd);
       el.removeEventListener('touchcancel', onTouchEnd);
+      if (fallbackTimer) clearTimeout(fallbackTimer);
     };
   }, []);
 
