@@ -12,14 +12,30 @@
     "style": "Elegante",
     "badge": "Best Seller",
     "images": [
-      { "src": "/watches/seiko-presage/1.jpg", "alt": "Seiko Presage Cocktail Time" },
-      { "src": "/watches/seiko-presage/1.jpg", "alt": "Seiko Presage Cocktail Time" },
-      { "src": "/watches/seiko-presage/1.jpg", "alt": "Seiko Presage Cocktail Time" }
+      {
+        "src": "/watches/seiko-presage/1.jpg",
+        "alt": "Seiko Presage Cocktail Time"
+      },
+      {
+        "src": "/watches/seiko-presage/1.jpg",
+        "alt": "Seiko Presage Cocktail Time"
+      },
+      {
+        "src": "/watches/seiko-presage/1.jpg",
+        "alt": "Seiko Presage Cocktail Time"
+      }
     ],
-    "specs": { "movement": "Automático", "crystal": "Hardlex", "caseDiameterMm": 40.5, "waterResistanceBar": 5, "strapMaterial": "Cuero", "caseMaterial": "Acero inoxidable", "weightG": 65, "warrantyMonths": 12 }
+    "specs": {
+      "movement": "Automático",
+      "crystal": "Hardlex",
+      "caseDiameterMm": 40.5,
+      "waterResistanceBar": 5,
+      "strapMaterial": "Cuero",
+      "caseMaterial": "Acero inoxidable",
+      "weightG": 65,
+      "warrantyMonths": 12
+    }
   },
-
-
   {
     "id": "tissot-prx-40",
     "slug": "tissot-prx",
@@ -33,10 +49,25 @@
     "style": "Elegante",
     "badge": "Nuevo",
     "images": [
-      { "src": "/watches/tissot-prx/1.jpg", "alt": "Tissot PRX 40" },
-      { "src": "/watches/tissot-prx/1.jpg", "alt": "Tissot PRX 40" }
+      {
+        "src": "/watches/tissot-prx/1.jpg",
+        "alt": "Tissot PRX 40"
+      },
+      {
+        "src": "/watches/tissot-prx/1.jpg",
+        "alt": "Tissot PRX 40"
+      }
     ],
-    "specs": { "movement": "Automático", "crystal": "Zafiro", "caseDiameterMm": 40, "waterResistanceBar": 10, "strapMaterial": "Acero", "caseMaterial": "Acero inoxidable", "weightG": 78, "warrantyMonths": 24 }
+    "specs": {
+      "movement": "Automático",
+      "crystal": "Zafiro",
+      "caseDiameterMm": 40,
+      "waterResistanceBar": 10,
+      "strapMaterial": "Acero",
+      "caseMaterial": "Acero inoxidable",
+      "weightG": 78,
+      "warrantyMonths": 24
+    }
   },
   {
     "id": "casio-edifice-efr",
@@ -51,12 +82,26 @@
     "style": "Deportivo",
     "badge": "Últimas unidades",
     "images": [
-      { "src": "/watches/casio-edifice/1.jpg", "alt": "Casio Edifice EFR-574" },
-      { "src": "/watches/casio-edifice/1.jpg", "alt": "Casio Edifice EFR-574" }
+      {
+        "src": "/watches/casio-edifice/1.jpg",
+        "alt": "Casio Edifice EFR-574"
+      },
+      {
+        "src": "/watches/casio-edifice/1.jpg",
+        "alt": "Casio Edifice EFR-574"
+      }
     ],
-    "specs": { "movement": "Cuarzo", "crystal": "Mineral", "caseDiameterMm": 43, "waterResistanceBar": 10, "strapMaterial": "Acero", "caseMaterial": "Acero inoxidable", "weightG": 130, "warrantyMonths": 12 }
+    "specs": {
+      "movement": "Cuarzo",
+      "crystal": "Mineral",
+      "caseDiameterMm": 43,
+      "waterResistanceBar": 10,
+      "strapMaterial": "Acero",
+      "caseMaterial": "Acero inoxidable",
+      "weightG": 130,
+      "warrantyMonths": 12
+    }
   },
-
   {
     "id": "seiko-diver-srpc",
     "slug": "seiko-diver",
@@ -70,10 +115,25 @@
     "style": "Diving",
     "badge": null,
     "images": [
-      { "src": "/watches/seiko-diver/1.jpg", "alt": "Seiko Diver SRPC" },
-      { "src": "/watches/seiko-diver/1.jpg", "alt": "Seiko Diver SRPC" }
+      {
+        "src": "/watches/seiko-diver/1.jpg",
+        "alt": "Seiko Diver SRPC"
+      },
+      {
+        "src": "/watches/seiko-diver/1.jpg",
+        "alt": "Seiko Diver SRPC"
+      }
     ],
-    "specs": { "movement": "Automático", "crystal": "Hardlex", "caseDiameterMm": 42.5, "waterResistanceBar": 20, "strapMaterial": "Acero", "caseMaterial": "Acero pulido", "weightG": 180, "warrantyMonths": 12 }
+    "specs": {
+      "movement": "Automático",
+      "crystal": "Hardlex",
+      "caseDiameterMm": 42.5,
+      "waterResistanceBar": 20,
+      "strapMaterial": "Acero",
+      "caseMaterial": "Acero pulido",
+      "weightG": 180,
+      "warrantyMonths": 12
+    }
   },
   {
     "id": "tissot-le-locle",
@@ -88,9 +148,21 @@
     "style": "Elegante",
     "badge": null,
     "images": [
-      { "src": "/watches/tissot-le-locle/1.jpg", "alt": "Tissot Le Locle Automatique" }
+      {
+        "src": "/watches/tissot-le-locle/1.jpg",
+        "alt": "Tissot Le Locle Automatique"
+      }
     ],
-    "specs": { "movement": "Automático", "crystal": "Zafiro", "caseDiameterMm": 39, "waterResistanceBar": 3, "strapMaterial": "Cuero", "caseMaterial": "Acero + PVD oro", "weightG": 67, "warrantyMonths": 24 }
+    "specs": {
+      "movement": "Automático",
+      "crystal": "Zafiro",
+      "caseDiameterMm": 39,
+      "waterResistanceBar": 3,
+      "strapMaterial": "Cuero",
+      "caseMaterial": "Acero + PVD oro",
+      "weightG": 67,
+      "warrantyMonths": 24
+    }
   },
   {
     "id": "casio-g-shock-ga",
@@ -105,11 +177,22 @@
     "style": "Deportivo",
     "badge": "Best Seller",
     "images": [
-      { "src": "/watches/casio-g-shock/1.jpg", "alt": "Casio G-Shock GA-2100" }
+      {
+        "src": "/watches/casio-g-shock/1.jpg",
+        "alt": "Casio G-Shock GA-2100"
+      }
     ],
-    "specs": { "movement": "Cuarzo", "crystal": "Mineral", "caseDiameterMm": 45.4, "waterResistanceBar": 20, "strapMaterial": "Caucho", "caseMaterial": "Resina + acero", "weightG": 51, "warrantyMonths": 12 }
+    "specs": {
+      "movement": "Cuarzo",
+      "crystal": "Mineral",
+      "caseDiameterMm": 45.4,
+      "waterResistanceBar": 20,
+      "strapMaterial": "Caucho",
+      "caseMaterial": "Resina + acero",
+      "weightG": 51,
+      "warrantyMonths": 12
+    }
   },
-
   {
     "id": "invicta-pro-diver",
     "slug": "invicta-pro-diver",
@@ -122,8 +205,22 @@
     "popularity": 84,
     "style": "Diving",
     "badge": "Nuevo",
-    "images": [{ "src": "/watches/invicta-pro-diver/1.jpg", "alt": "Invicta Pro Diver vista frontal" }],
-    "specs": { "movement": "Automático", "crystal": "Mineral", "caseDiameterMm": 42, "waterResistanceBar": 20, "strapMaterial": "Acero", "caseMaterial": "Acero pulido", "weightG": 160, "warrantyMonths": 12 }
+    "images": [
+      {
+        "src": "/watches/invicta-pro-diver/1.jpg",
+        "alt": "Invicta Pro Diver vista frontal"
+      }
+    ],
+    "specs": {
+      "movement": "Automático",
+      "crystal": "Mineral",
+      "caseDiameterMm": 42,
+      "waterResistanceBar": 20,
+      "strapMaterial": "Acero",
+      "caseMaterial": "Acero pulido",
+      "weightG": 160,
+      "warrantyMonths": 12
+    }
   },
   {
     "id": "citizen-eco-drive-pilot",
@@ -137,8 +234,22 @@
     "popularity": 79,
     "style": "Deportivo",
     "badge": null,
-    "images": [{ "src": "/watches/citizen-eco-drive/1.jpg", "alt": "Citizen Eco-Drive Pilot frontal" }],
-    "specs": { "movement": "Solar", "crystal": "Mineral", "caseDiameterMm": 42, "waterResistanceBar": 10, "strapMaterial": "Nylon", "caseMaterial": "Acero", "weightG": 75, "warrantyMonths": 24 }
+    "images": [
+      {
+        "src": "/watches/citizen-eco-drive/1.jpg",
+        "alt": "Citizen Eco-Drive Pilot frontal"
+      }
+    ],
+    "specs": {
+      "movement": "Solar",
+      "crystal": "Mineral",
+      "caseDiameterMm": 42,
+      "waterResistanceBar": 10,
+      "strapMaterial": "Nylon",
+      "caseMaterial": "Acero",
+      "weightG": 75,
+      "warrantyMonths": 24
+    }
   },
   {
     "id": "fossil-grant",
@@ -152,8 +263,22 @@
     "popularity": 76,
     "style": "Elegante",
     "badge": null,
-    "images": [{ "src": "/watches/fossil-grant/1.jpg", "alt": "Fossil Grant vista frontal" }],
-    "specs": { "movement": "Cuarzo", "crystal": "Mineral", "caseDiameterMm": 40, "waterResistanceBar": 5, "strapMaterial": "Cuero", "caseMaterial": "Acero + PVD oro rosa", "weightG": 60, "warrantyMonths": 12 }
+    "images": [
+      {
+        "src": "/watches/fossil-grant/1.jpg",
+        "alt": "Fossil Grant vista frontal"
+      }
+    ],
+    "specs": {
+      "movement": "Cuarzo",
+      "crystal": "Mineral",
+      "caseDiameterMm": 40,
+      "waterResistanceBar": 5,
+      "strapMaterial": "Cuero",
+      "caseMaterial": "Acero + PVD oro rosa",
+      "weightG": 60,
+      "warrantyMonths": 12
+    }
   },
   {
     "id": "orient-bambino",
@@ -167,8 +292,22 @@
     "popularity": 82,
     "style": "Elegante",
     "badge": null,
-    "images": [{ "src": "/watches/orient-bambino/1.jpg", "alt": "Orient Bambino vista frontal" }],
-    "specs": { "movement": "Automático", "crystal": "Mineral", "caseDiameterMm": 40, "waterResistanceBar": 3, "strapMaterial": "Cuero", "caseMaterial": "Acero pulido", "weightG": 65, "warrantyMonths": 12 }
+    "images": [
+      {
+        "src": "/watches/orient-bambino/1.jpg",
+        "alt": "Orient Bambino vista frontal"
+      }
+    ],
+    "specs": {
+      "movement": "Automático",
+      "crystal": "Mineral",
+      "caseDiameterMm": 40,
+      "waterResistanceBar": 3,
+      "strapMaterial": "Cuero",
+      "caseMaterial": "Acero pulido",
+      "weightG": 65,
+      "warrantyMonths": 12
+    }
   },
   {
     "id": "bulova-classic",
@@ -182,8 +321,22 @@
     "popularity": 70,
     "style": "Elegante",
     "badge": null,
-    "images": [{ "src": "/watches/bulova-classic/1.jpg", "alt": "Bulova Classic vista frontal" }],
-    "specs": { "movement": "Cuarzo", "crystal": "Mineral", "caseDiameterMm": 38, "waterResistanceBar": 3, "strapMaterial": "Cuero", "caseMaterial": "Acero", "weightG": 45, "warrantyMonths": 24 }
+    "images": [
+      {
+        "src": "/watches/bulova-classic/1.jpg",
+        "alt": "Bulova Classic vista frontal"
+      }
+    ],
+    "specs": {
+      "movement": "Cuarzo",
+      "crystal": "Mineral",
+      "caseDiameterMm": 38,
+      "waterResistanceBar": 3,
+      "strapMaterial": "Cuero",
+      "caseMaterial": "Acero",
+      "weightG": 45,
+      "warrantyMonths": 24
+    }
   },
   {
     "id": "hamilton-khaki-field",
@@ -197,7 +350,21 @@
     "popularity": 88,
     "style": "Deportivo",
     "badge": "Últimas unidades",
-    "images": [{ "src": "/watches/hamilton-khaki/1.jpg", "alt": "Hamilton Khaki Field vista frontal" }],
-    "specs": { "movement": "Mecánico", "crystal": "Zafiro", "caseDiameterMm": 38, "waterResistanceBar": 5, "strapMaterial": "Nylon", "caseMaterial": "Acero", "weightG": 70, "warrantyMonths": 24 }
+    "images": [
+      {
+        "src": "/watches/hamilton-khaki/1.jpg",
+        "alt": "Hamilton Khaki Field vista frontal"
+      }
+    ],
+    "specs": {
+      "movement": "Mecánico",
+      "crystal": "Zafiro",
+      "caseDiameterMm": 38,
+      "waterResistanceBar": 5,
+      "strapMaterial": "Nylon",
+      "caseMaterial": "Acero",
+      "weightG": 70,
+      "warrantyMonths": 24
+    }
   }
 ]

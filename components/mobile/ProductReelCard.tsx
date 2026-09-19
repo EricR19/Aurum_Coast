@@ -1,12 +1,12 @@
 'use client';
 
 import { Scale, Info, Plus, Check } from 'lucide-react';
-import { useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { GalleryEmbla } from './GalleryEmbla';
 import { StockBadge } from '@/components/ui/StockBadge';
 import { IconButton } from '@/components/ui/IconButton';
-import { useApp } from '@/components/providers/SheetProvider';
+import { useAppState, useAppActions } from '@/components/providers/SheetProvider';
 import { formatCRCOnly } from '@/lib/products';
 import { track } from '@/lib/metaPixel';
 import type { Product } from '@/lib/types';
@@ -34,17 +34,25 @@ interface ProductReelCardProps {
  *  - Header flotante superior con logo + filtros/búsqueda/carrito.
  *  - Barra lateral derecha estilo TikTok: Comparar y Specs.
  *  - Overlay inferior con glass-morphism: nombre, precio, badge, botón.
+ *
+ * PERFORMANCE: este componente está envuelto en `React.memo` con un
+ * comparador custom. Solo se re-renderiza cuando:
+ *   - cambia la referencia del `product` (catalogo + filtros estables),
+ *   - cambia `isFirstSlide` (pasa solo cuando se inserta/elimina al inicio),
+ *   - cambia `scrollRootRef` (nunca en la práctica; es estable).
+ *
+ * El estado del comparador (`compareIds`) se traduce a un booleano local
+ * memoizado. Asi, un toggle en OTRO producto no invalida este card.
  */
-export function ProductReelCard({ product, scrollRootRef, isFirstSlide = false }: ProductReelCardProps) {
-  const {
-    requestSheet,
-    addToCart,
-    toggleCompare,
-    compareIds,
-  } = useApp();
+function ProductReelCardImpl({ product, scrollRootRef, isFirstSlide = false }: ProductReelCardProps) {
+  const { compareIds } = useAppState();
+  const { requestSheet, addToCart, toggleCompare } = useAppActions();
 
   const [added, setAdded] = useState(false);
-  const isCompared = compareIds.includes(product.id);
+  // `isCompared` se recalcula solo cuando `compareIds` cambia (y `product.id`
+  // es estable). Asi, agregar otro producto al comparador no causa
+  // re-render de este card, solo del card correspondiente.
+  const isCompared = useMemo(() => compareIds.includes(product.id), [compareIds, product.id]);
 
   const handleAddToCart = () => {
     addToCart(product);
@@ -60,7 +68,7 @@ export function ProductReelCard({ product, scrollRootRef, isFirstSlide = false }
 
   return (
     <section
-      className="relative h-screen-snap w-full snap-start overflow-hidden bg-black"
+      className="relative h-screen-snap w-full overflow-hidden bg-black"
       data-product-id={product.id}
     >
       <GalleryEmbla
@@ -140,3 +148,23 @@ export function ProductReelCard({ product, scrollRootRef, isFirstSlide = false }
     </section>
   );
 }
+
+/**
+ * `React.memo` con comparador custom:
+ * - `product`: comparacion por REFERENCIA. Funciona porque `applyFilters`
+ *   ahora memoiza por (catalogo + filterState), asi que la misma combinacion
+ *   devuelve el mismo array con los mismos Product refs adentro.
+ * - `scrollRootRef`: estable, vive en MobileFeed. Nunca cambia en la practica.
+ * - `isFirstSlide`: solo cambia cuando se inserta/elimina al inicio del feed.
+ *
+ * Resultado: cualquier dispatch del provider (carrito, comparador, filtros)
+ * re-renderiza SOLO los cards afectados, no los 12 a la vez.
+ */
+export const ProductReelCard = memo(
+  ProductReelCardImpl,
+  (prev, next) =>
+    prev.product === next.product &&
+    prev.scrollRootRef === next.scrollRootRef &&
+    prev.isFirstSlide === next.isFirstSlide,
+);
+ProductReelCard.displayName = 'ProductReelCard';

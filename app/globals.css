@@ -27,11 +27,27 @@
      corre, --app-height refleja visualViewport.height en vivo, que es lo
      unico confiable cuando la toolbar de Chrome Android se muestra/oculta
      (dvh y svh igual fallaban en Chrome real, aunque servian bien en
-     el simulador de DevTools y en iOS Safari). */
+     el simulador de DevTools y en iOS Safari).
+
+     NOTA (2026-09-18): a pesar del nombre, esta clase YA NO participa de
+     ningun `scroll-snap-type`/`scroll-snap-align` de CSS -- eso se saco
+     por completo del feed (ver `MobileFeed.tsx`, seccion "MOTOR DE
+     PAGINADO"). El nombre se mantiene solo por no tener que renombrarlo
+     en los ~17 usos; hoy es simplemente "altura de pantalla completa +
+     capa de composicion propia". */
   .h-screen-snap {
     height: 100vh; /* fallback base */
     height: 100svh; /* fallback mejor: tamano minimo garantizado */
     height: calc(var(--app-height, 100svh));
+    /* FIX 2026-09-18 "la imagen anterior queda pegada al scrollear rapido":
+       sin esto, las 17 secciones comparten una sola superficie de rasterizado
+       con `<main>` (que ya tiene su propio `will-change: transform`). En
+       scroll rapido, Chrome/MIUI a veces no re-rasteriza a tiempo los tiles
+       recien expuestos de esa superficie compartida y deja pixeles viejos
+       visibles (el producto anterior) hasta el proximo repaint. Promover
+       cada seccion a su PROPIA capa de composicion evita que compartan
+       tiles entre si. */
+    will-change: transform;
   }
 
   /* Animación pulse para el CTA "Desliza para explorar" */
@@ -89,5 +105,30 @@
       rgba(0, 0, 0, 0.75) 50%,
       rgba(0, 0, 0, 0.95) 100%
     );
+  }
+
+  /* Accesibilidad: usuarios con prefers-reduced-motion activado (configuracion
+     del sistema, comun en gente con sensibilidad al movimiento o vertigo)
+     no deberian ver animaciones fuertes como el ken-burns o el bounce del
+     Hero. Tambien desactiva transiciones largas que pueden marear.
+
+     En Xiaomi y otros gama media esto ADEMAS ayuda a performance porque
+     esas animaciones son las que mas le cuestan al compositor. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    .ken-burns {
+      animation: none !important;
+      transform: none !important;
+    }
+    .animate-bounce-slow {
+      animation: none !important;
+    }
   }
 }

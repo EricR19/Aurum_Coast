@@ -1,7 +1,7 @@
 'use client';
 
 import clsx from 'clsx';
-import { useApp } from '@/components/providers/SheetProvider';
+import { useAppState, useAppActions } from '@/components/providers/SheetProvider';
 
 interface BrandChipsProps {
   brands: string[];
@@ -13,12 +13,13 @@ interface BrandChipsProps {
  * El slide en sí NO cambia, pero el `MobileFeed` lo lee y re-aplica los filtros.
  */
 export function BrandChips({ brands }: BrandChipsProps) {
-  const { activeBrand, setBrand } = useApp();
+  const { activeBrand } = useAppState();
+  const { setBrand } = useAppActions();
 
   return (
     <section
       id="brand-chips"
-      className="relative flex h-screen-snap w-full snap-start flex-col items-center justify-center bg-zinc-950 px-4"
+      className="relative flex h-screen-snap w-full flex-col items-center justify-center bg-zinc-950 px-4"
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.05),_transparent_60%)]" />
 

@@ -21,12 +21,6 @@ export const metadata: Metadata = {
   title: 'AURUM COAST — Relojes de alta gama',
   description:
     'Catálogo inmersivo de relojes: Seiko, Tissot, Casio. Compra directo por WhatsApp con SINPE Móvil o contra entrega.',
-  manifest: '/manifest.webmanifest',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'AURUM COAST',
-  },
   icons: {
     apple: '/banners/aurum-coast-logo-clean-960.png',
   },

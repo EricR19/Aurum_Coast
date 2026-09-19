@@ -5,6 +5,12 @@ import { products } from './products';
 /**
  * Busqueda fuzzy sobre el catalogo de productos.
  *
+ * PERFORMANCE: este modulo se importa de forma dinamica SOLO desde
+ * `SearchSheet.tsx`. Asi, `fuse.js` (~10 KB) queda dentro del chunk lazy
+ * de SearchSheet y NO se descarga con el bundle inicial. Antes vivia en
+ * el chunk compartido y se pagaba siempre, aunque el usuario nunca
+ * abriera la busqueda.
+ *
  * Decisiones:
  * - Instancia singleton de Fuse (no se recrea por busqueda).
  * - Pesos: brand > model > shortDescription > style. El usuario que busca

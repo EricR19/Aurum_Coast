@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { BottomSheet, useSheetState } from './BottomSheet';
-import { useApp } from '@/components/providers/SheetProvider';
+import { useAppState, useAppActions } from '@/components/providers/SheetProvider';
 import { products, getAllBrands } from '@/lib/products';
 import type { Movement, SortKey, Style } from '@/lib/types';
 import clsx from 'clsx';
@@ -17,15 +17,15 @@ const SORTS: { key: SortKey; label: string }[] = [
 ];
 
 export function FiltersSheet() {
+  const { filters } = useAppState();
   const {
-    filters,
     setBrand,
     setMovement,
     setStyle,
     setPriceRange,
     setSort,
     clearFilters,
-  } = useApp();
+  } = useAppActions();
   const sheet = useSheetState('filters');
 
   // Estado local para inputs de precio (debounce).

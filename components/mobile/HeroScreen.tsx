@@ -17,7 +17,7 @@ interface HeroScreenProps {
  */
 export function HeroScreen({ storeName }: HeroScreenProps) {
   return (
-    <section className="relative flex h-screen-snap w-full snap-start flex-col items-center justify-center bg-gradient-to-br from-black via-zinc-900 to-zinc-800 px-6 text-center">
+    <section className="relative flex h-screen-snap w-full flex-col items-center justify-center bg-gradient-to-br from-black via-zinc-900 to-zinc-800 px-6 text-center">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(212,175,55,0.15),_transparent_60%)]" />
 
       <div className="relative z-10 flex max-w-md flex-col items-center">

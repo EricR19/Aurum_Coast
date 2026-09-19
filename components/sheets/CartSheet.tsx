@@ -3,13 +3,14 @@
 import Image from 'next/image';
 import { Minus, Plus, Trash2, MessageCircle, ShoppingBag } from 'lucide-react';
 import { BottomSheet, useSheetState } from './BottomSheet';
-import { useApp } from '@/components/providers/SheetProvider';
+import { useAppState, useAppActions } from '@/components/providers/SheetProvider';
 import { formatCRC, getPriceCRC } from '@/lib/products';
 import { buildWhatsAppCheckoutUrl } from '@/lib/whatsapp';
 import { track } from '@/lib/metaPixel';
 
 export function CartSheet() {
-  const { cart, updateQty, removeFromCart, clearCart } = useApp();
+  const { cart } = useAppState();
+  const { updateQty, removeFromCart, clearCart } = useAppActions();
   const sheet = useSheetState('cart');
 
   const totalCRC = cart.reduce(

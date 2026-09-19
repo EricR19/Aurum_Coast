@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useEffect, type ReactNode } from 'react';
-import { useApp } from '@/components/providers/SheetProvider';
+import { useAppState, useAppActions } from '@/components/providers/SheetProvider';
 import type { SheetKey } from '@/lib/types';
 
 interface BottomSheetProps {
@@ -118,16 +118,20 @@ export function BottomSheet({ open, onClose, title, children, size = 'default' }
  * Devuelve `open` SOLO si el sheet actual coincide con el `name` que el
  * componente declara. Así, 4 sheets pueden coexistir en el DOM y solo
  * se muestra el que esté activo, sin colisiones.
+ *
+ * Optimizado: solo se suscribe al contexto de ESTADO. La accion `closeSheet`
+ * viene del contexto de ACCIONES (referencia estable, no causa re-renders).
  */
 export function useSheetState(name: SheetKey): {
   open: boolean;
   onClose: () => void;
-  selectedProduct: ReturnType<typeof useApp>['selectedProduct'];
-  compareIds: ReturnType<typeof useApp>['compareIds'];
-  cart: ReturnType<typeof useApp>['cart'];
-  activeBrand: ReturnType<typeof useApp>['activeBrand'];
+  selectedProduct: ReturnType<typeof useAppState>['selectedProduct'];
+  compareIds: ReturnType<typeof useAppState>['compareIds'];
+  cart: ReturnType<typeof useAppState>['cart'];
+  activeBrand: ReturnType<typeof useAppState>['activeBrand'];
 } {
-  const { openSheet, closeSheet, selectedProduct, compareIds, cart, activeBrand } = useApp();
+  const { openSheet, selectedProduct, compareIds, cart, activeBrand } = useAppState();
+  const { closeSheet } = useAppActions();
   return {
     open: openSheet === name,
     onClose: closeSheet,

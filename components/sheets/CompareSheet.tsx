@@ -1,7 +1,7 @@
 'use client';
 
 import { BottomSheet, useSheetState } from './BottomSheet';
-import { useApp } from '@/components/providers/SheetProvider';
+import { useAppState, useAppActions } from '@/components/providers/SheetProvider';
 import { products } from '@/lib/products';
 import { Scale } from 'lucide-react';
 
@@ -39,7 +39,8 @@ function getValue(obj: any, path: string): any {
 }
 
 export function CompareSheet() {
-  const { compareIds, clearCompare, toggleCompare } = useApp();
+  const { compareIds } = useAppState();
+  const { clearCompare, toggleCompare } = useAppActions();
   const sheet = useSheetState('compare');
 
   const compareProducts = products.filter((p) => compareIds.includes(p.id));

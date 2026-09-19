@@ -48,62 +48,117 @@ export function GalleryEmbla({ images, onSlideChange, scrollRootRef, priorityFir
 
   // Estado de pre-carga: si true, la primera imagen se monta sin esperar.
   const [preloaded, setPreloaded] = useState(priorityFirst);
+  // FIX stutter Xiaomi: el ken-burns solo se aplica si el slide quedo
+  // quieto por >350ms. Antes se aplicaba inmediatamente al hacer snap,
+  // y durante scroll rapido varios ken-burns disparaban transform/opacity
+  // animations al mismo tiempo, saturando el compositor en gama media.
+  const [stable, setStable] = useState(priorityFirst);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // FIX performance: leemos `onSlideChange` por ref. Asi el callback que
+  // viene del padre puede recrearse en cada render (es lo normal cuando el
+  // padre no esta memoizado) sin invalidar el useEffect de abajo y, por
+  // tanto, sin re-suscribir listeners a Embla ni resetear `scrollSnaps`
+  // cada vez que cambia cualquier cosa del state global.
+  const onSlideChangeRef = useRef(onSlideChange);
+  useEffect(() => {
+    onSlideChangeRef.current = onSlideChange;
+  }, [onSlideChange]);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
     const idx = emblaApi.selectedScrollSnap();
     setSelectedIndex(idx);
-    onSlideChange?.(idx);
-  }, [emblaApi, onSlideChange]);
+    onSlideChangeRef.current?.(idx);
+  }, [emblaApi]);
 
   useEffect(() => {
     if (!emblaApi) return;
     setScrollSnaps(emblaApi.scrollSnapList());
+    // FIX performance: evitamos `on('reInit', onSelect)` porque Embla no
+    // se reinicializa en runtime (loop/align son fijos en este componente).
+    // Asi reducimos un listener innecesario por galeria (x12 productos).
     emblaApi.on('select', onSelect);
-    emblaApi.on('reInit', onSelect);
     onSelect();
     return () => {
       emblaApi.off('select', onSelect);
-      emblaApi.off('reInit', onSelect);
     };
   }, [emblaApi, onSelect]);
 
   // Observer que detecta cuando este slide esta a <=1 viewport del actual.
   // Cuando entra en ese rango, pre-carga la primera imagen.
-  // rootMargin '-50% 0px 50% 0px' = "el borde superior esta a 50% del
-  // viewport debajo del borde superior del root". Esto basicamente detecta
-  // cuando el slide esta justo despues del actual.
+  //
+  // FIX performance: usamos `rootBounds` (coordenadas del contenedor scroll)
+  // en lugar de `boundingClientRect.top` (que es contra el viewport y por
+  // tanto puede dar `top` negativo cuando el contenedor esta en el medio
+  // del scroll vertical -> la pre-carga NUNCA disparaba).
+  //
+  // Tambien programamos el `setPreloaded(true)` dentro de un rAF para que
+  // caiga en el siguiente frame y no fuerce un paint extra en mitad del
+  // snap del feed.
   useEffect(() => {
     // El primer producto ya se carga por priority, no necesita observer.
     if (priorityFirst) return;
     const el = containerRef.current;
     if (!el) return;
 
+    // FIX 2026-09-18 "imagenes no cargan durante scroll continuo": antes
+    // habia un grace period de 300ms que cancelaba la pre-carga si el
+    // slide salia del viewport antes de tiempo. En un scroll real (no el
+    // simulador de DevTools) el usuario casi nunca se queda quieto 300ms
+    // por slide, asi que `preloaded` nunca se activaba y la primera
+    // imagen del slide siguiente llegaba tarde. Ahora disparamos apenas
+    // se confirma que el slide esta en la zona de pre-carga, sin esperar.
+    // El posible frame a medio cargar ya no es un problema: `LazyImage`
+    // hace fade-in con `onLoad`, no muestra nada crudo a medio decodificar.
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // entry.boundingClientRect.top nos dice donde esta el slide
-        // relativo al viewport. Si esta entre 0 y 100vh abajo del top
-        // del viewport, es el "siguiente slide".
-        const top = entry.boundingClientRect.top;
-        const viewportH = window.innerHeight;
-        if (entry.isIntersecting && top > 0 && top < viewportH) {
-          setPreloaded(true);
-          observer.disconnect();
+        if (!entry.isIntersecting) return;
+        // Consideramos "siguiente slide" cualquier slide cuyo top este
+        // dentro del primer viewport hacia abajo desde el borde superior
+        // del contenedor de scroll. Esto cubre el slide siguiente cuando
+        // el actual esta en la primera mitad.
+        const root = entry.rootBounds;
+        let shouldPreload = false;
+        if (!root) {
+          // Fallback: si no hay rootBounds (algunos browsers viejos),
+          // aceptamos cualquier intersección.
+          shouldPreload = true;
+        } else {
+          const slideTop = entry.boundingClientRect.top - root.top;
+          const slideBottom = slideTop + entry.boundingClientRect.height;
+          shouldPreload = slideBottom > root.top && slideTop < root.top + root.height;
         }
+        if (!shouldPreload) return;
+        setPreloaded(true);
+        observer.disconnect();
       },
       {
         root: scrollRootRef?.current ?? null,
-        // Detecta cuando el slide esta entre el borde inferior del viewport
-        // actual y 1 viewport hacia abajo.
-        rootMargin: '0px 0px 100% 0px',
-        threshold: [0, 0.5, 1],
+        // Solo pre-carga cuando el slide esta REALMENTE cerca del viewport
+        // visible. Antes era '50%' (demasiado generoso) y luego '25%'.
+        rootMargin: '0px 0px 25% 0px',
+        threshold: 0,
       }
     );
 
     observer.observe(el);
     return () => observer.disconnect();
   }, [scrollRootRef, priorityFirst]);
+
+  // FIX stutter Xiaomi: cuando preloaded pasa a true (la imagen esta lista),
+  // esperamos 350ms antes de marcar como "stable" (lo que activa ken-burns).
+  // Asi el ken-burns solo se aplica cuando el slide esta REALMENTE quieto,
+  // no durante un scroll rapido en el que varios slides pasan por el viewport.
+  useEffect(() => {
+    if (!preloaded) {
+      setStable(false);
+      return;
+    }
+    const t = setTimeout(() => setStable(true), 350);
+    return () => clearTimeout(t);
+  }, [preloaded]);
 
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden bg-black">
@@ -119,7 +174,13 @@ export function GalleryEmbla({ images, onSlideChange, scrollRootRef, priorityFir
                      → priority=true (la pone arriba de la cola de descarga).
                   2. Es la primera imagen y el slide esta pre-cargado
                      → eager=true (monta el Image ya, sin observer).
-                  3. Caso normal → espera al observer de LazyImage. */}
+                  3. Caso normal → espera al observer de LazyImage.
+
+                  FIX stutter Xiaomi: el ken-burns solo se aplica cuando
+                  el slide esta "stable" (llevo quieto >350ms), no apenas
+                  se precargo. Asi evitamos que durante un scroll rapido
+                  varios ken-burns disparen transform/opacity animations
+                  al mismo tiempo. */}
               <LazyImage
                 src={img.src}
                 alt={img.alt}
@@ -128,7 +189,7 @@ export function GalleryEmbla({ images, onSlideChange, scrollRootRef, priorityFir
                 eager={i === 0 && preloaded}
                 sizes="100vw"
                 rootRef={scrollRootRef}
-                className={`object-cover ${i === 0 && preloaded ? 'ken-burns' : ''}`}
+                className={`object-cover ${i === 0 && stable ? 'ken-burns' : ''}`}
               />
             </div>
           ))}

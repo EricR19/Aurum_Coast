@@ -44,8 +44,8 @@ export function scrollToProduct(
 
     setTimeout(() => {
       // Calcular la posicion del slide dentro del contenedor y scrollear
-      // directamente. Esto respeta el scroll-snap porque opera sobre el
-      // mismo elemento con `snap-y snap-mandatory`.
+      // directamente. No depende de CSS scroll-snap (el feed ya no lo usa):
+      // esto mismo ES el mecanismo que decide donde aterriza el scroll.
       const top = slide.offsetTop;
       container.scrollTo({ top, behavior: 'smooth' });
       // Limpia el hash para no interferir con futuras navegaciones internas.

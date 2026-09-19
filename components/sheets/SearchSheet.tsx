@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { Search, X } from 'lucide-react';
 import { BottomSheet, useSheetState } from './BottomSheet';
-import { searchProducts } from '@/lib/search';
 import { formatCRCOnly, products as catalog } from '@/lib/products';
 import { scrollToProduct } from '@/lib/deepLink';
 import { track } from '@/lib/metaPixel';
@@ -16,10 +15,17 @@ import type { Product } from '@/lib/types';
  * - Busqueda en vivo por keystroke.
  * - Tap en resultado: cierra sheet + scroll al slide del producto.
  * - Track de busquedas a Meta Pixel.
+ *
+ * PERFORMANCE: `searchProducts` (y con el, `fuse.js` ~10 KB) se importa
+ * de forma dinamica SOLO la primera vez que el usuario escribe en el
+ * input. Antes se importaba estaticamente desde este archivo, lo que
+ * metia a `fuse.js` en el chunk compartido del bundle inicial aunque
+ * el 90% de los usuarios nunca abre la busqueda.
  */
 export function SearchSheet() {
   const sheet = useSheetState('search');
   const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Product[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -31,7 +37,36 @@ export function SearchSheet() {
     return undefined;
   }, [sheet.open]);
 
-  const results = useMemo(() => searchProducts(query), [query]);
+  // Busqueda live con import dinamico lazy de fuse.js.
+  // El import solo se ejecuta una vez; las busquedas siguientes reusan
+  // el modulo cacheado por webpack.
+  const searchModuleRef = useRef<typeof import('@/lib/search') | null>(null);
+  const ensureSearchModule = useCallback(async () => {
+    if (!searchModuleRef.current) {
+      searchModuleRef.current = await import('@/lib/search');
+    }
+    return searchModuleRef.current;
+  }, []);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setResults([]);
+      return;
+    }
+    let cancelled = false;
+    // Debounce 150ms para no lanzar busqueda en cada keystroke.
+    const t = setTimeout(async () => {
+      const mod = await ensureSearchModule();
+      if (cancelled) return;
+      const r = mod.searchProducts(q);
+      setResults(r);
+    }, 150);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [query, ensureSearchModule]);
 
   useEffect(() => {
     if (query.trim().length >= 2) {
@@ -44,17 +79,28 @@ export function SearchSheet() {
 
   const handleSelect = (product: Product) => {
     sheet.onClose();
-    // El feed esta en un contenedor con `overflow-y-scroll snap-y`.
+    // El feed es el contenedor con scroll nativo (sin CSS scroll-snap desde
+    // 2026-09-18: el aterrizaje lo decide JS, ver MobileFeed.tsx).
     // Lo identificamos por la clase `h-screen-snap` (unica en la pagina).
     const container = document.querySelector<HTMLElement>('main.h-screen-snap');
     if (!container) return;
-    // Usamos scrollToProduct que scrollea programaticamente el contenedor,
-    // respetando el scroll-snap. Antes se usaba slide.scrollIntoView() que
-    // opera sobre el viewport del navegador y termina saltando al final
-    // del scroll (TrustCard) cuando falla el snap. Ver lib/deepLink.ts.
+    // Usamos scrollToProduct que scrollea programaticamente el contenedor.
+    // Antes se usaba slide.scrollIntoView() que opera sobre el viewport del
+    // navegador y podia terminar saltando al final del scroll (TrustCard).
+    // Ver lib/deepLink.ts.
+    //
+    // FIX performance: antes había un `setTimeout(200)` que se ejecutaba
+    // MIENTRAS el sheet todavía estaba saliendo (la animacion de salida
+    // dura 320ms segun BottomSheet.tsx). Eso hacia que el scroll peleara
+    // contra la animacion de salida y daba la sensacion de "la animacion
+    // no funciona / se traba". Ahora esperamos 370ms (salida + 50ms de
+    // margen) para que el scroll arranque cuando el sheet ya esta fuera
+    // del camino.
+    const EXIT_DURATION_MS = 320; // ver BottomSheet.tsx transition duration
+    const SAFETY_MS = 50;
     setTimeout(() => {
       scrollToProduct(container, product.id, catalog, 0);
-    }, 200);
+    }, EXIT_DURATION_MS + SAFETY_MS);
   };
 
   return (

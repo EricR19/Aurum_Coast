@@ -37,7 +37,7 @@ export function TrustCard() {
   )}`;
 
   return (
-    <section className="relative flex h-screen-snap w-full snap-start flex-col items-center justify-center bg-gradient-to-b from-black to-zinc-900 px-6 text-center">
+    <section className="relative flex h-screen-snap w-full flex-col items-center justify-center bg-gradient-to-b from-black to-zinc-900 px-6 text-center">
       <h2 className="text-3xl font-black text-white">
         Compra <span className="text-brand-accent">con confianza</span>
       </h2>

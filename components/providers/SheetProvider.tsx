@@ -16,6 +16,31 @@ import { loadStoredCart, saveCart, hydrateCart } from '@/lib/cartStorage';
 import { defaultFilterState } from '@/lib/filters';
 
 /**
+ * El provider se divide en DOS contextos para evitar re-renders globales:
+ *
+ *  - SheetStateContext   -> cambia cuando el estado (carrito, sheet abierto,
+ *                           filtros, comparador) cambia. Los consumidores que
+ *                           solo necesitan acciones NO se re-renderizan.
+ *  - SheetActionsContext -> las funciones de acción viven en un useRef y la
+ *                           referencia del value es ESTABLE para toda la vida
+ *                           del provider. Los consumidores no ven "nuevas"
+ *                           referencias en cada dispatch, así que ningún
+ *                           useEffect/[...] ni memo downstream se invalida
+ *                           cuando cambia el state.
+ *
+ * Esto corta la cascada que provocaba "freeze" al hacer scroll vertical:
+ * cualquier dispatch (ej. abrir un sheet, agregar al carrito) re-renderizaba
+ * el FeedInner completo y, con él, los 12 ProductReelCard + sus GalleryEmbla.
+ *
+ * Para los consumidores se exponen:
+ *   - useAppState()    -> solo estado, re-renderiza cuando el estado cambia.
+ *   - useAppActions()  -> solo acciones, referencia estable, NUNCA re-renderiza
+ *                         por cambios de estado.
+ *   - useApp()         -> hook combinado deprecado, mantenido por
+ *                         compatibilidad hacia atrás.
+ */
+
+/**
  * Estado global de la app:
  *  - currentSheet: qué Bottom Sheet está actualmente abierto.
  *  - selectedProduct: el producto sobre el cual se pidieron Specs.
@@ -165,15 +190,18 @@ function reducer(state: AppState, action: Action): AppState {
 interface Ctx {
   /** Estado: qué Bottom Sheet está actualmente abierto. */
   openSheet: SheetKey;
-  /** Acción: cierra el sheet (con sincronización de History API). */
-  closeSheet: () => void;
-  /** Acción: abre un sheet. */
-  requestSheet: (key: Exclude<SheetKey, null>, product?: Product) => void;
   selectedProduct: Product | null;
   compareIds: string[];
   cart: CartItem[];
   activeBrand: string;
   filters: AppState['filters'];
+}
+
+interface CtxActions {
+  /** Acción: cierra el sheet (con sincronización de History API). */
+  closeSheet: () => void;
+  /** Acción: abre un sheet. */
+  requestSheet: (key: Exclude<SheetKey, null>, product?: Product) => void;
   setBrand: (brand: string) => void;
   setMovement: (movement: Movement | null) => void;
   setStyle: (style: Style | null) => void;
@@ -188,7 +216,8 @@ interface Ctx {
   clearCart: () => void;
 }
 
-const SheetContext = createContext<Ctx | null>(null);
+const SheetStateContext = createContext<Ctx | null>(null);
+const SheetActionsContext = createContext<CtxActions | null>(null);
 
 export function SheetProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -231,20 +260,43 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('popstate', handlePop);
   }, [state.currentSheet]);
 
-  const value = useMemo<Ctx>(
+  // ------ Estado expuesto: cambia solo cuando cambia el state.
+  // Memoizamos por primitivos para evitar invalidaciones innecesarias
+  // (ej. si solo cambia cart, los consumidores de openSheet no ven ref nueva).
+  const stateValue = useMemo<Ctx>(
     () => ({
-      // Estado
       openSheet: state.currentSheet,
       selectedProduct: state.selectedProduct,
       compareIds: state.compareIds,
       cart: state.cart,
       activeBrand: state.activeBrand,
       filters: state.filters,
-      // Acciones
-      requestSheet: (key, product) => dispatch({ type: 'OPEN_SHEET', key, product }),
+    }),
+    [
+      state.currentSheet,
+      state.selectedProduct,
+      state.compareIds,
+      state.cart,
+      state.activeBrand,
+      state.filters,
+    ]
+  );
+
+  // ------ Acciones expuestas: referencia ESTABLE de por vida.
+  // Guardamos dispatch + state actual en refs para que las funciones lean
+  // siempre el state más reciente sin tener que recrearse en cada render.
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  const actionsValue = useMemo<CtxActions>(
+    () => ({
+      requestSheet: (key, product) =>
+        dispatch({ type: 'OPEN_SHEET', key, product }),
       closeSheet: () => {
         // Si hay history en el sheet, retrocede una entrada para mantener coherencia.
-        if (state.currentSheet && window.history.state?.sheet) {
+        if (stateRef.current.currentSheet && window.history.state?.sheet) {
           window.history.back();
           return;
         }
@@ -265,20 +317,50 @@ export function SheetProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'UPDATE_QTY', productId: id, quantity }),
       clearCart: () => dispatch({ type: 'CLEAR_CART' }),
     }),
-    [state]
+    []
   );
 
-  return <SheetContext.Provider value={value}>{children}</SheetContext.Provider>;
+  return (
+    <SheetStateContext.Provider value={stateValue}>
+      <SheetActionsContext.Provider value={actionsValue}>
+        {children}
+      </SheetActionsContext.Provider>
+    </SheetStateContext.Provider>
+  );
 }
 
-export function useApp(): Ctx {
-  const ctx = useContext(SheetContext);
-  if (!ctx) throw new Error('useApp debe usarse dentro de <SheetProvider>');
+/** Lee solo el estado. Re-renderiza cuando cambia el estado. */
+export function useAppState(): Ctx {
+  const ctx = useContext(SheetStateContext);
+  if (!ctx) throw new Error('useAppState debe usarse dentro de <SheetProvider>');
   return ctx;
 }
 
+/** Lee solo las acciones. La referencia es estable: nunca re-renderiza. */
+export function useAppActions(): CtxActions {
+  const ctx = useContext(SheetActionsContext);
+  if (!ctx) throw new Error('useAppActions debe usarse dentro de <SheetProvider>');
+  return ctx;
+}
+
+/**
+ * Hook combinado deprecado. Mantenido por compatibilidad hacia atrás.
+ * Internamente une useAppState() + useAppActions(). Los consumidores deberían
+ * migrar a los hooks individuales para evitar re-renders innecesarios.
+ */
+export function useApp(): Ctx & CtxActions {
+  const stateCtx = useAppState();
+  const actionsCtx = useAppActions();
+  // La referencia cambia SOLO cuando cambia el state (igual que antes),
+  // pero las acciones internas ya no se recrean.
+  return useMemo(
+    () => ({ ...stateCtx, ...actionsCtx }),
+    [stateCtx, actionsCtx]
+  );
+}
+
 export function useOpenSheet() {
-  const { requestSheet } = useApp();
+  const { requestSheet } = useAppActions();
   return useCallback(
     (key: Exclude<SheetKey, null>, product?: Product) => requestSheet(key, product),
     [requestSheet]

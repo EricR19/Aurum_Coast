@@ -1,7 +1,7 @@
 'use client';
 
 import { BottomSheet, useSheetState } from './BottomSheet';
-import { useApp } from '@/components/providers/SheetProvider';
+import { useAppState } from '@/components/providers/SheetProvider';
 import { formatCRC, getPriceCRC } from '@/lib/products';
 
 interface SpecRow {
@@ -9,7 +9,7 @@ interface SpecRow {
   value: string | number;
 }
 
-function buildRows(p: ReturnType<typeof useApp>['selectedProduct']): SpecRow[] {
+function buildRows(p: ReturnType<typeof useAppState>['selectedProduct']): SpecRow[] {
   if (!p) return [];
   const s = p.specs;
   return [

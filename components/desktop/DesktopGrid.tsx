@@ -6,7 +6,7 @@ import clsx from 'clsx';
 import { products, getAllBrands } from '@/lib/products';
 import { formatCRC, getPriceCRC } from '@/lib/products';
 import { applyFilters } from '@/lib/filters';
-import { SheetProvider, useApp } from '@/components/providers/SheetProvider';
+import { SheetProvider, useAppState, useAppActions } from '@/components/providers/SheetProvider';
 import { StockBadge } from '@/components/ui/StockBadge';
 
 /**
@@ -18,7 +18,8 @@ import { StockBadge } from '@/components/ui/StockBadge';
  * Cada link profundo `#slug` funciona también en escritorio.
  */
 function DesktopGridInner() {
-  const { filters, setBrand } = useApp();
+  const { filters } = useAppState();
+  const { setBrand } = useAppActions();
   const brands = getAllBrands();
   const filtered = applyFilters(products, filters);
 
