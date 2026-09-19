@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { Search, X } from 'lucide-react';
 import { BottomSheet, useSheetState } from './BottomSheet';
+import { useAppActions } from '@/components/providers/SheetProvider';
 import { formatCRCOnly, products as catalog } from '@/lib/products';
 import { scrollToProduct } from '@/lib/deepLink';
 import { beginProgrammaticScroll } from '@/lib/programmaticScroll';
@@ -25,6 +26,7 @@ import type { Product } from '@/lib/types';
  */
 export function SearchSheet() {
   const sheet = useSheetState('search');
+  const { clearFilters } = useAppActions();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -80,6 +82,11 @@ export function SearchSheet() {
 
   const handleSelect = (product: Product) => {
     sheet.onClose();
+    // Clear any active filters so the product is visible in the DOM.
+    // If a brand filter was active that excluded this product, the slide
+    // wouldn't exist and scrollToProduct would find nothing.
+    clearFilters();
+    
     // El feed es el contenedor con scroll nativo (sin CSS scroll-snap desde
     // 2026-09-18: el aterrizaje lo decide JS, ver MobileFeed.tsx).
     // Lo identificamos por la clase `h-screen-snap` (unica en la pagina).

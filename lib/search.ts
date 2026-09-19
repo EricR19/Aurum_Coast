@@ -44,7 +44,22 @@ const fuse = new Fuse(products, FUSE_OPTIONS);
 export function searchProducts(query: string, limit = 20): Product[] {
   const q = query.trim();
   if (q.length < 2) return [];
-  return fuse
-    .search(q, { limit })
-    .map((result) => result.item);
+
+  // FIX: Fuse's weighted multi-key scoring can include unrelated products
+  // with a misleading combined score (verified: query "bu" returned
+  // "Invicta Pro Diver" even though it doesn't contain "bu" anywhere
+  // relevant). This caused search to redirect to the wrong watch.
+  // Exact/substring match is deterministic and always correct, so we try
+  // it first and only fall back to fuzzy matching if nothing matches.
+  const qLower = q.toLowerCase();
+  const exact = products.filter(
+    (p) =>
+      p.brand.toLowerCase().includes(qLower) ||
+      p.model.toLowerCase().includes(qLower) ||
+      p.shortDescription.toLowerCase().includes(qLower) ||
+      p.style.toLowerCase().includes(qLower)
+  );
+  if (exact.length > 0) return exact.slice(0, limit);
+
+  return fuse.search(q, { limit }).map((result) => result.item);
 }
