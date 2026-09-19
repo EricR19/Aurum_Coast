@@ -2,11 +2,19 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { getProductBySlug } from '@/lib/products';
+import { getProductBySlug, products } from '@/lib/products';
 import { formatCRC, getPriceCRC } from '@/lib/products';
 
 interface PageProps {
   params: { slug: string };
+}
+
+/**
+ * Para `output: 'export'` (static site), Next.js necesita saber en build-time
+ * que slugs pre-renderizar. Devolvemos todos los productos del catalogo.
+ */
+export async function generateStaticParams() {
+  return products.map((p) => ({ slug: p.slug }));
 }
 
 /**
