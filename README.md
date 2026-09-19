@@ -23,6 +23,7 @@
 | 14 | History API: botón "Atrás" cierra el sheet | ✅ |
 | 15 | Meta Pixel (`ViewContent`, `AddToCart`, `InitiateCheckout`, `Lead`) | ✅ |
 | 16 | Vista de escritorio con cuadrícula (Tailwind `md:block`) | ✅ |
+| 17 | Bottom Sheet de **Búsqueda** fuzzy (Fuse.js, live search, deep-link al producto) | ✅ |
 
 ## 🛠️ Stack
 
@@ -110,7 +111,6 @@ public/
 
 - Imágenes cargadas vía Unsplash (URLs externas); en Fase 2 conviene migrar a `public/watches/` para mejor control de AVIF y Lighthouse.
 - No hay CMS ni panel admin: editar productos directamente en `data/products.json`.
-- Búsqueda de productos: aún no implementada (botón solo notifica "pendiente para Fase 2").
 - Sin tests automatizados todavía (siguiente iteración).
 
 ## 📞 Próximos pasos sugeridos
@@ -118,5 +118,4 @@ public/
 - [ ] Migrar imágenes a `public/watches/*.webp` local (mejor LCP).
 - [ ] Tabla comparativa: hacer "sticky" la primera columna al hacer scroll horizontal.
 - [ ] Persistencia del carrito en `localStorage`.
-- [ ] Integrar pestaña de búsqueda con `fuse.js`.
 - [ ] Vista admin para gestionar productos desde el navegador.
