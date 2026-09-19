@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    @apply h-full bg-black text-white antialiased;
+    font-family: var(--font-body), 'Plus Jakarta Sans', system-ui, sans-serif;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Safe area iOS */
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* Evita scroll horizontal accidental en el feed móvil */
+  body {
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  /* 100svh como fallback previo a hidratacion. Una vez que useAppHeight()
+     corre, --app-height refleja visualViewport.height en vivo, que es lo
+     unico confiable cuando la toolbar de Chrome Android se muestra/oculta
+     (dvh y svh igual fallaban en Chrome real, aunque servian bien en
+     el simulador de DevTools y en iOS Safari). */
+  .h-screen-snap {
+    height: 100vh; /* fallback base */
+    height: 100svh; /* fallback mejor: tamano minimo garantizado */
+    height: calc(var(--app-height, 100svh));
+  }
+
+  /* Animación pulse para el CTA "Desliza para explorar" */
+  .animate-bounce-slow {
+    animation: bounceSlow 2.4s ease-in-out infinite;
+  }
+
+  @keyframes bounceSlow {
+    0%, 100% {
+      transform: translateY(0);
+      opacity: 0.7;
+    }
+    50% {
+      transform: translateY(8px);
+      opacity: 1;
+    }
+  }
+
+  /* Ken Burns effect: sutil zoom-in (1.02 -> 1.0) cuando aparece una
+     imagen que fue pre-cargada. Da sensacion de "vivo" sin distraer.
+     Solo GPU-accelerated (transform + opacity). Duracion 600ms. */
+  .ken-burns {
+    animation: kenBurnsIn 600ms ease-out both;
+  }
+
+  @keyframes kenBurnsIn {
+    0% {
+      transform: scale(1.02);
+      opacity: 0.85;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Scrollbar oculto en el feed vertical y en chips */
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Glass-morphism ligero para overlay inferior.
+     Antes tenia backdrop-filter: blur(8px) pero es MUY caro en mobile GPUs.
+     Removimos el blur y subimos la opacidad del gradiente para mantener
+     legibilidad. El efecto visual sigue siendo elegante (degradado de
+     transparente a negro solido). */
+  .glass {
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.75) 50%,
+      rgba(0, 0, 0, 0.95) 100%
+    );
+  }
+}

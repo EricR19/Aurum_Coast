@@ -1,0 +1,20 @@
+{
+  "name": "AURUM COAST — Relojes de alta gama",
+  "short_name": "AURUM COAST",
+  "description": "Catálogo inmersivo de relojes de lujo: Seiko, Tissot, Casio. Compra directo por WhatsApp con SINPE Móvil o contra entrega.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "es-CR",
+  "icons": [
+    {
+      "src": "/banners/aurum-coast-logo-clean-960.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
